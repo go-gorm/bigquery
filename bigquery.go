@@ -3,16 +3,18 @@ package bigquery
 import (
 	"database/sql"
 	"fmt"
-	"gorm.io/driver/bigquery/adaptor"
-	_ "gorm.io/driver/bigquery/driver"
+	"reflect"
+	"regexp"
+	"strings"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
-	"reflect"
-	"regexp"
-	"strings"
+
+	"gorm.io/driver/bigquery/adaptor"
+	_ "gorm.io/driver/bigquery/driver"
 )
 
 type Dialector struct {
@@ -87,7 +89,12 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 	case schema.String:
 		return "STRING"
 	case schema.Time:
-		return "TIMESTAMP"
+		// Distinguish between schema.Time and tag time
+		if val, ok := field.TagSettings["TYPE"]; ok {
+			return val
+		} else {
+			return "TIMESTAMP"
+		}
 	case schema.Bytes:
 		return "BYTES"
 	}
