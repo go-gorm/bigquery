@@ -3,18 +3,16 @@ package bigquery
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
-	"regexp"
-	"strings"
-
+	"gorm.io/driver/bigquery/adaptor"
+	_ "gorm.io/driver/bigquery/driver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
-
-	"gorm.io/driver/bigquery/adaptor"
-	_ "gorm.io/driver/bigquery/driver"
+	"reflect"
+	"regexp"
+	"strings"
 )
 
 type Dialector struct {
