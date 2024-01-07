@@ -7,7 +7,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/api v0.155.0
-	gorm.io/gorm v1.24.0
+	gorm.io/gorm v1.25.5
 )
 
 require (
