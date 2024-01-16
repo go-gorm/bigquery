@@ -12,25 +12,21 @@ import (
 )
 
 type bigQueryDriver struct {
-	opt driverOption
 }
 
 type bigQueryConfig struct {
-	projectID   string
-	location    string
-	dataSet     string
-	scopes      []string
-	endpoint    string
-	disableAuth bool
+	projectID      string
+	location       string
+	dataSet        string
+	scopes         []string
+	endpoint       string
+	disableAuth    bool
+	credentialFile string
 }
 
-func (b bigQueryDriver) Open(uri string, driverOpts ...applyOption) (driver.Conn, error) {
+func (b bigQueryDriver) Open(uri string) (driver.Conn, error) {
 	if uri == "scanner" {
 		return &scannerConnection{}, nil
-	}
-
-	for _, opt := range driverOpts {
-		opt(&b.opt)
 	}
 
 	config, err := configFromUri(uri)
@@ -47,8 +43,8 @@ func (b bigQueryDriver) Open(uri string, driverOpts ...applyOption) (driver.Conn
 	if config.disableAuth {
 		opts = append(opts, option.WithoutAuthentication())
 	}
-	if b.opt.credentialFile != "" {
-		opts = append(opts, option.WithCredentialsFile(b.opt.credentialFile))
+	if config.credentialFile != "" {
+		opts = append(opts, option.WithCredentialsFile(config.credentialFile))
 	}
 
 	client, err := bigquery.NewClient(ctx, config.projectID, opts...)
@@ -83,11 +79,12 @@ func configFromUri(uri string) (*bigQueryConfig, error) {
 	}
 
 	config := &bigQueryConfig{
-		projectID:   u.Hostname(),
-		dataSet:     fields[len(fields)-1],
-		scopes:      getScopes(u.Query()),
-		endpoint:    u.Query().Get("endpoint"),
-		disableAuth: u.Query().Get("disable_auth") == "true",
+		projectID:      u.Hostname(),
+		dataSet:        fields[len(fields)-1],
+		scopes:         getScopes(u.Query()),
+		endpoint:       u.Query().Get("endpoint"),
+		disableAuth:    u.Query().Get("disable_auth") == "true",
+		credentialFile: u.Query().Get("credential_file"),
 	}
 
 	if len(fields) == 2 {
