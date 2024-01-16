@@ -12,6 +12,7 @@ import (
 )
 
 type bigQueryDriver struct {
+	opt driverOption
 }
 
 type bigQueryConfig struct {
@@ -23,10 +24,13 @@ type bigQueryConfig struct {
 	disableAuth bool
 }
 
-func (b bigQueryDriver) Open(uri string) (driver.Conn, error) {
-
+func (b bigQueryDriver) Open(uri string, driverOpts ...applyOption) (driver.Conn, error) {
 	if uri == "scanner" {
 		return &scannerConnection{}, nil
+	}
+
+	for _, opt := range driverOpts {
+		opt(&b.opt)
 	}
 
 	config, err := configFromUri(uri)
@@ -42,6 +46,9 @@ func (b bigQueryDriver) Open(uri string) (driver.Conn, error) {
 	}
 	if config.disableAuth {
 		opts = append(opts, option.WithoutAuthentication())
+	}
+	if b.opt.credentialFile != "" {
+		opts = append(opts, option.WithCredentialsFile(b.opt.credentialFile))
 	}
 
 	client, err := bigquery.NewClient(ctx, config.projectID, opts...)
