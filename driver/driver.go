@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/base64"
 	"fmt"
 	"net/url"
 	"strings"
@@ -22,6 +23,7 @@ type bigQueryConfig struct {
 	endpoint       string
 	disableAuth    bool
 	credentialFile string
+	credentialJSON []byte
 }
 
 func (b bigQueryDriver) Open(uri string) (driver.Conn, error) {
@@ -45,6 +47,9 @@ func (b bigQueryDriver) Open(uri string) (driver.Conn, error) {
 	}
 	if config.credentialFile != "" {
 		opts = append(opts, option.WithCredentialsFile(config.credentialFile))
+	}
+	if len(config.credentialJSON) != 0 {
+		opts = append(opts, option.WithCredentialsJSON([]byte(config.credentialJSON)))
 	}
 
 	client, err := bigquery.NewClient(ctx, config.projectID, opts...)
@@ -85,6 +90,15 @@ func configFromUri(uri string) (*bigQueryConfig, error) {
 		endpoint:       u.Query().Get("endpoint"),
 		disableAuth:    u.Query().Get("disable_auth") == "true",
 		credentialFile: u.Query().Get("credential_file"),
+	}
+
+	if u.Query().Get("credential_json") != "" {
+		credentialsJSON, err := base64.StdEncoding.DecodeString(u.Query().Get("credential_json"))
+		if err != nil {
+			return nil, err
+		} else {
+			config.credentialJSON = credentialsJSON
+		}
 	}
 
 	if len(fields) == 2 {
