@@ -4,7 +4,7 @@ This is an implementation of the BigQuery Client as a database/sql/driver for ea
 
 # Goals of project
 
-This module implements a BigQuery SQL driver and GORM dialect. 
+This module implements a BigQuery SQL driver and GORM dialect.
 
 # Usage
 
@@ -13,7 +13,7 @@ via the GOOGLE_APPLICATION_CREDENTIALS environment variable point to your creden
 
 ## Vanilla *sql.DB usage
 
-Just like any other database/sql driver you'll need to import it 
+Just like any other database/sql driver you'll need to import it
 
 ```go
 package main
@@ -25,12 +25,12 @@ import (
 )
 
 func main() {
-    db, err := sql.Open("bigquery", 
+    db, err := sql.Open("bigquery",
         "bigquery://projectid/dataset")
     if err != nil {
         log.Fatal(err)
     }
-    defer db.Close() 
+    defer db.Close()
     // Do Something with the DB
 
 }
@@ -55,7 +55,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    defer db.Close() 
+    defer db.Close()
     // Do Something with the DB
 
 }
@@ -86,19 +86,21 @@ type ComplexSubRecord struct {
 
 
 func main() {
+    // You can also pass custom endpoint and/or skip authentication by using query parameters like this:
+    // bigquery://go-bigquery-driver/playground?endpoint=http://localhost:56758&disable_auth=true
     db, err := gorm.Open(bigquery.Open("bigquery://go-bigquery-driver/playground"), &gorm.Config{})
     if err != nil {
         log.Fatal(err)
     }
 
     var records []ComplexRecord
-    
+
     // Delete complex record table if exists
     db.Migrator().DropTable(&ComplexRecord{})
 
     // Make sure we have a complex_records table
     db.AutoMigrate(&ComplexRecord{})
-    
+
     // Insert new records to table
     db.Create(&ComplexRecord{Name: "test", Record: ComplexSubRecord{Name: "dd", Age: 1}})
     db.Create(&ComplexRecord{Name: "test2", Record: ComplexSubRecord{Name: "dd2", Age: 444}})
@@ -137,13 +139,13 @@ func main() {
     }
 
     var records []ArrayRecord
-    
+
     // Delete array_records table if exists
     db.Migrator().DropTable(&ArrayRecord{})
 
     // Make sure we have an array_records table
     db.AutoMigrate(&ArrayRecord{})
-    
+
     // Insert new records to table
     db.Create(&ArrayRecord{Name: "test", Records: []ComplexSubRecord{{Name: "dd", Age: 1}, {Name: "dd1", Age: 1}}})
     db.Create(&ArrayRecord{Name: "test2", Records: []ComplexSubRecord{{Name: "dd2", Age: 444}, {Name: "dd3", Age: 1}}})
@@ -177,7 +179,7 @@ func main() {
     }
 
     var versions []Version
-    
+
     query := db.Table("charts, UNNEST(Samples) as sample")
 
     query = query.Select("DISTINCT CONCAT(" +
@@ -185,7 +187,7 @@ func main() {
         "CAST(sample.MinorVersion AS STRING), '.'," +
         "CAST(sample.RevisionVersion AS STRING)" +
         ") as Label")
-    
+
     err = query.Find(&versions).Error
     if err != nil {
         log.Fatal(err)
