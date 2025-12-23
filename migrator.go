@@ -153,7 +153,7 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 			optionParts = append(optionParts, fmt.Sprintf("%s = %s", key, logger.ExplainSQL("?", nil, `'`, value)))
 		}
 		slices.Sort(optionParts)
-		expr.SQL += " OPTIONS (" + strings.Join(optionParts, " ") + ")"
+		expr.SQL += " OPTIONS (" + strings.Join(optionParts, ", ") + ")"
 	}
 
 	return
