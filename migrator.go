@@ -1,7 +1,11 @@
 package bigquery
 
 import (
+	"context"
 	"errors"
+	"fmt"
+
+	"gorm.io/driver/bigquery/driver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/migrator"
@@ -13,8 +17,11 @@ type Migrator struct {
 }
 
 func (m Migrator) CurrentDatabase() (name string) {
-	m.DB.Raw("SELECT CURRENT_DATABASE()").Row().Scan(&name)
-	return
+	datasetID, err := m.getDatasetID()
+	if err != nil {
+		return ""
+	}
+	return datasetID
 }
 
 func (m Migrator) BuildIndexOptions(opts []schema.IndexOption, stmt *gorm.Statement) (results []interface{}) {
@@ -40,7 +47,15 @@ func (m Migrator) DropIndex(value interface{}, name string) error {
 func (m Migrator) HasTable(value interface{}) bool {
 	var count int64
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		return m.DB.Raw("SELECT count(*) FROM `INFORMATION_SCHEMA.TABLES` WHERE table_name = ?", stmt.Table).Row().Scan(&count)
+		// According to the BigQuery documentation, an INFORMATION_SCHEMA view must be qualified with a dataset or region.
+		// See: https://docs.cloud.google.com/bigquery/docs/information-schema-intro
+		//
+		// We are going to attempt to get the dataset ID from the connection and use it to qualify the INFORMATION_SCHEMA view.
+		datasetID, err := m.getDatasetID()
+		if err != nil {
+			return err
+		}
+		return m.DB.Raw("SELECT count(*) FROM `"+datasetID+".INFORMATION_SCHEMA.TABLES` WHERE table_name = ?", stmt.Table).Row().Scan(&count)
 	})
 
 	return count > 0
@@ -67,8 +82,17 @@ func (m Migrator) HasColumn(value interface{}, field string) bool {
 			name = field.DBName
 		}
 
+		// According to the BigQuery documentation, an INFORMATION_SCHEMA view must be qualified with a dataset or region.
+		// See: https://docs.cloud.google.com/bigquery/docs/information-schema-intro
+		//
+		// We are going to attempt to get the dataset ID from the connection and use it to qualify the INFORMATION_SCHEMA view.
+		datasetID, err := m.getDatasetID()
+		if err != nil {
+			return err
+		}
+
 		return m.DB.Raw(
-			"SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = ? AND column_name = ?",
+			"SELECT count(*) FROM `"+datasetID+".INFORMATION_SCHEMA.columns` WHERE table_schema = CURRENT_SCHEMA() AND table_name = ? AND column_name = ?",
 			stmt.Table, name,
 		).Row().Scan(&count)
 	})
@@ -79,11 +103,52 @@ func (m Migrator) HasColumn(value interface{}, field string) bool {
 func (m Migrator) HasConstraint(value interface{}, name string) bool {
 	var count int64
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		// According to the BigQuery documentation, an INFORMATION_SCHEMA view must be qualified with a dataset or region.
+		// See: https://docs.cloud.google.com/bigquery/docs/information-schema-intro
+		//
+		// We are going to attempt to get the dataset ID from the connection and use it to qualify the INFORMATION_SCHEMA view.
+		datasetID, err := m.getDatasetID()
+		if err != nil {
+			return err
+		}
+
 		return m.DB.Raw(
-			"SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE table_schema = CURRENT_SCHEMA() AND table_name = ? AND constraint_name = ?",
+			"SELECT count(*) FROM `"+datasetID+".INFORMATION_SCHEMA.table_constraints` WHERE table_schema = CURRENT_SCHEMA() AND table_name = ? AND constraint_name = ?",
 			stmt.Table, name,
 		).Row().Scan(&count)
 	})
 
 	return count > 0
+}
+
+// getDatasetID is a helper function to get the dataset ID from the connection.
+func (m Migrator) getDatasetID() (string, error) {
+	sqlDB, err := m.DB.DB()
+	if err != nil {
+		return "", fmt.Errorf("could not get underlying database: %w", err)
+	}
+	ctx := context.Background()
+	conn, err := sqlDB.Conn(ctx)
+	if err != nil {
+		return "", fmt.Errorf("could not get connection: %w", err)
+	}
+
+	datasetID := ""
+	err = conn.Raw(func(rawConnection any) error {
+		bigQueryConnection, ok := rawConnection.(*driver.BigQueryConnection)
+		if !ok {
+			return errors.New("connection is not a *driver.BigQueryConnection")
+		}
+		dataset := bigQueryConnection.GetDataset()
+		if dataset == nil {
+			return errors.New("dataset is nil")
+		}
+		datasetID = dataset.DatasetID
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("could not get dataset ID: %w", err)
+	}
+
+	return datasetID, nil
 }

@@ -57,7 +57,7 @@ func (b bigQueryDriver) Open(uri string) (driver.Conn, error) {
 		return nil, err
 	}
 
-	return &bigQueryConnection{
+	return &BigQueryConnection{
 		ctx:    ctx,
 		client: client,
 		config: *config,

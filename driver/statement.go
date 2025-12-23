@@ -1,16 +1,17 @@
 package driver
 
 import (
-	"cloud.google.com/go/bigquery"
 	"context"
 	"database/sql/driver"
 	"errors"
+
+	"cloud.google.com/go/bigquery"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/bigquery/adaptor"
 )
 
 type bigQueryStatement struct {
-	connection *bigQueryConnection
+	connection *BigQueryConnection
 	query      string
 }
 
