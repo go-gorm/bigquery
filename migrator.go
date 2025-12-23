@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 
 	"gorm.io/driver/bigquery/driver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
 )
@@ -119,6 +122,41 @@ func (m Migrator) HasConstraint(value interface{}, name string) bool {
 	})
 
 	return count > 0
+}
+
+// FullDataTypeOf returns field's db full data type
+func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
+	expr.SQL = m.DataTypeOf(field)
+
+	if field.NotNull {
+		expr.SQL += " NOT NULL"
+	}
+
+	if field.HasDefaultValue && (field.DefaultValueInterface != nil || field.DefaultValue != "") {
+		if field.DefaultValueInterface != nil {
+			defaultStmt := &gorm.Statement{Vars: []interface{}{field.DefaultValueInterface}}
+			m.Dialector.BindVarTo(defaultStmt, defaultStmt, field.DefaultValueInterface)
+			expr.SQL += " DEFAULT " + m.Dialector.Explain(defaultStmt.SQL.String(), field.DefaultValueInterface)
+		} else if field.DefaultValue != "(-)" {
+			expr.SQL += " DEFAULT " + field.DefaultValue
+		}
+	}
+
+	options := map[string]string{}
+	if field.Comment != "" {
+		options["description"] = field.Comment
+	}
+
+	if len(options) > 0 {
+		optionParts := []string{}
+		for key, value := range options {
+			optionParts = append(optionParts, fmt.Sprintf("%s = %s", key, logger.ExplainSQL("?", nil, `'`, value)))
+		}
+		slices.Sort(optionParts)
+		expr.SQL += " OPTIONS (" + strings.Join(optionParts, " ") + ")"
+	}
+
+	return
 }
 
 // getDatasetID is a helper function to get the dataset ID from the connection.
