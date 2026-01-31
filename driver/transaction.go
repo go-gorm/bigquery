@@ -1,7 +1,7 @@
 package driver
 
 type bigQueryTransaction struct {
-	connection *bigQueryConnection
+	connection *BigQueryConnection
 }
 
 func (transaction *bigQueryTransaction) Commit() error {
