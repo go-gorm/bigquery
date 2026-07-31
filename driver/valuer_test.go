@@ -36,7 +36,7 @@ func TestBigQueryConnectionCheckNamedValueUnwrapsNestedValuer(t *testing.T) {
 		Value: staticValuer{value: staticValuer{value: "hello"}},
 	}
 
-	err := bigQueryConnection{}.CheckNamedValue(namedValue)
+	err := (&bigQueryConnection{}).CheckNamedValue(namedValue)
 
 	require.NoError(t, err)
 	require.Equal(t, "hello", namedValue.Value)
