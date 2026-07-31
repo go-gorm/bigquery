@@ -1,10 +1,11 @@
 package driver
 
 import (
-	"cloud.google.com/go/bigquery"
 	"context"
 	"database/sql/driver"
 	"errors"
+
+	"cloud.google.com/go/bigquery"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/bigquery/adaptor"
 )
@@ -175,24 +176,26 @@ func buildParameter(arg driver.Value, parameters []bigquery.QueryParameter) []bi
 		return buildParameterFromNamedValue(namedValue, parameters)
 	}
 
-	logrus.Debugf("-param:%s", arg)
+	normalizedValue := dereferencePointers(arg)
+	logrus.Debugf("-param:%s", normalizedValue)
 
 	return append(parameters, bigquery.QueryParameter{
-		Value: arg,
+		Value: normalizedValue,
 	})
 }
 
 func buildParameterFromNamedValue(namedValue driver.NamedValue, parameters []bigquery.QueryParameter) []bigquery.QueryParameter {
-	logrus.Debugf("-param:%s=%s", namedValue.Name, namedValue.Value)
+	normalizedValue := dereferencePointers(namedValue.Value)
+	logrus.Debugf("-param:%s=%s", namedValue.Name, normalizedValue)
 
 	if namedValue.Name == "" {
 		return append(parameters, bigquery.QueryParameter{
-			Value: namedValue.Value,
+			Value: normalizedValue,
 		})
 	} else {
 		return append(parameters, bigquery.QueryParameter{
 			Name:  namedValue.Name,
-			Value: namedValue.Value,
+			Value: normalizedValue,
 		})
 	}
 }
