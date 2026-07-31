@@ -10,7 +10,7 @@ func initializeCallbacks(db *gorm.DB) {
 
 	// register callbacks
 	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{
-		CreateClauses: []string{"INSERT", "VALUES", "ON CONFLICT", "RETURNING"},
+		CreateClauses: []string{"INSERT", "VALUES"},
 	})
 
 	c := &bigQueryCallbacks{db}
