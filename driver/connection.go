@@ -8,7 +8,7 @@ import (
 	"cloud.google.com/go/bigquery"
 )
 
-type bigQueryConnection struct {
+type BigQueryConnection struct {
 	ctx     context.Context
 	client  *bigquery.Client
 	config  bigQueryConfig
@@ -17,7 +17,7 @@ type bigQueryConnection struct {
 	dataset *bigquery.Dataset
 }
 
-func (connection *bigQueryConnection) GetDataset() *bigquery.Dataset {
+func (connection *BigQueryConnection) GetDataset() *bigquery.Dataset {
 	if connection.dataset != nil {
 		return connection.dataset
 	}
@@ -25,11 +25,11 @@ func (connection *bigQueryConnection) GetDataset() *bigquery.Dataset {
 	return connection.dataset
 }
 
-func (connection *bigQueryConnection) GetContext() context.Context {
+func (connection *BigQueryConnection) GetContext() context.Context {
 	return connection.ctx
 }
 
-func (connection *bigQueryConnection) Ping(ctx context.Context) error {
+func (connection *BigQueryConnection) Ping(ctx context.Context) error {
 
 	dataset := connection.GetDataset()
 	if dataset == nil {
@@ -44,12 +44,12 @@ func (connection *bigQueryConnection) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (connection *bigQueryConnection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+func (connection *BigQueryConnection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	var statement = &bigQueryStatement{connection, query}
 	return statement.QueryContext(ctx, args)
 }
 
-func (connection *bigQueryConnection) Query(query string, args []driver.Value) (driver.Rows, error) {
+func (connection *BigQueryConnection) Query(query string, args []driver.Value) (driver.Rows, error) {
 	statement, err := connection.Prepare(query)
 	if err != nil {
 		return nil, nil
@@ -58,13 +58,13 @@ func (connection *bigQueryConnection) Query(query string, args []driver.Value) (
 	return statement.Query(args)
 }
 
-func (connection *bigQueryConnection) Prepare(query string) (driver.Stmt, error) {
+func (connection *BigQueryConnection) Prepare(query string) (driver.Stmt, error) {
 	var statement = &bigQueryStatement{connection, query}
 
 	return statement, nil
 }
 
-func (connection *bigQueryConnection) Close() error {
+func (connection *BigQueryConnection) Close() error {
 	if connection.closed {
 		return nil
 	}
@@ -75,26 +75,26 @@ func (connection *bigQueryConnection) Close() error {
 	return connection.client.Close()
 }
 
-func (connection *bigQueryConnection) Begin() (driver.Tx, error) {
+func (connection *BigQueryConnection) Begin() (driver.Tx, error) {
 	var transaction = &bigQueryTransaction{connection}
 
 	return transaction, nil
 }
 
-func (connection *bigQueryConnection) query(query string) (*bigquery.Query, error) {
+func (connection *BigQueryConnection) query(query string) (*bigquery.Query, error) {
 	return connection.client.Query(query), nil
 }
 
-func (connection *bigQueryConnection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+func (connection *BigQueryConnection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 	var statement = &bigQueryStatement{connection, query}
 	return statement.ExecContext(ctx, args)
 }
 
-func (connection *bigQueryConnection) Exec(query string, args []driver.Value) (driver.Result, error) {
+func (connection *BigQueryConnection) Exec(query string, args []driver.Value) (driver.Result, error) {
 	var statement = &bigQueryStatement{connection, query}
 	return statement.Exec(args)
 }
 
-func (connection *bigQueryConnection) CheckNamedValue(namedValue *driver.NamedValue) error {
+func (connection *BigQueryConnection) CheckNamedValue(namedValue *driver.NamedValue) error {
 	return unwrapValuer(namedValue)
 }
