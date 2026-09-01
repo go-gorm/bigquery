@@ -11,7 +11,7 @@ import (
 )
 
 type bigQueryStatement struct {
-	connection *bigQueryConnection
+	connection *BigQueryConnection
 	query      string
 }
 
