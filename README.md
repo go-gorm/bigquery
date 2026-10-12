@@ -195,3 +195,58 @@ func main() {
 
 }
 ```
+
+
+Using gorm with a BigQuery model that uses JSON type
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"gorm.io/datatypes"
+	"gorm.io/driver/bigquery"
+	"gorm.io/gorm"
+)
+
+type ArrayRecord struct {
+	Name     string                                 `gorm:"column:Name"`
+	Records  []ComplexSubRecord                     `gorm:"column:Records;type:json;serializer:json;default:null"`
+	Records2 datatypes.JSONType[[]ComplexSubRecord] `gorm:"column:Records2;type:json"`
+}
+
+type ComplexSubRecord struct {
+	Name string `gorm:"column:Name"`
+	Age  int    `gorm:"column:Age"`
+}
+
+func main() {
+	db, err := gorm.Open(bigquery.Open("bigquery://go-bigquery-driver/playground"), &gorm.Config{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var records []ArrayRecord
+
+	// Delete array_records table if exists
+	db.Migrator().DropTable(&ArrayRecord{})
+
+	// Make sure we have an array_records table
+	db.AutoMigrate(&ArrayRecord{})
+
+	// Insert new records to table
+	db.Create(&ArrayRecord{Name: "test", Records: []ComplexSubRecord{{Name: "dd", Age: 1}, {Name: "dd1", Age: 1}}, Records2: datatypes.NewJSONType([]ComplexSubRecord{{Name: "dd", Age: 1}, {Name: "dd1", Age: 1}})})
+	db.Create(&ArrayRecord{Name: "test2", Records: []ComplexSubRecord{{Name: "dd2", Age: 444}, {Name: "dd3", Age: 1}}, Records2: datatypes.NewJSONType([]ComplexSubRecord{{Name: "dd2", Age: 444}, {Name: "dd3", Age: 1}})})
+
+	// Select records from table ordered by name
+	db.Order("Name").Find(&records)
+	fmt.Println(records)
+}
+```
+
+Note: 
+- Must specify `type:JSON` for the field in the model:
+- Use `serializer:json` if the model type is not using gorm's `datatypes.JSONType[T]`
+- Include `default:null` to handle null values if the model type is not using gorm's `datatypes.JSONType[T]`
