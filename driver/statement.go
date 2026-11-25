@@ -150,6 +150,8 @@ func (statement bigQueryStatement) buildQuery(args []driver.Value) (*bigquery.Qu
 		return nil, err
 	}
 	query.DefaultDatasetID = statement.connection.config.dataSet
+	query.Location = statement.connection.config.location
+	query.Reservation = statement.connection.config.reservation
 	query.Parameters, err = statement.buildParameters(args)
 	if err != nil {
 		return nil, err

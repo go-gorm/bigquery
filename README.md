@@ -36,6 +36,14 @@ func main() {
 }
 ```
 
+You can attach a reservation to the DSN via a query parameter:
+
+```
+bigquery://projectid/dataset?reservation=projects/<project>/locations/<location>/reservations/<reservation>
+```
+
+When a reservation is set, the driver runs each query job in that reservation.
+
 ## Gorm Usage
 
 Opening a Gorm bigquery db

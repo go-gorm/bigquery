@@ -24,6 +24,7 @@ type bigQueryConfig struct {
 	disableAuth    bool
 	credentialFile string
 	credentialJSON []byte
+	reservation    string
 }
 
 func (b bigQueryDriver) Open(uri string) (driver.Conn, error) {
@@ -90,6 +91,7 @@ func configFromUri(uri string) (*bigQueryConfig, error) {
 		endpoint:       u.Query().Get("endpoint"),
 		disableAuth:    u.Query().Get("disable_auth") == "true",
 		credentialFile: u.Query().Get("credential_file"),
+		reservation:    getReservation(u.Query()),
 	}
 
 	if u.Query().Get("credential_json") != "" {
@@ -114,6 +116,13 @@ func getScopes(query url.Values) []string {
 		return []string{}
 	}
 	return strings.Split(q, ",")
+}
+
+func getReservation(query url.Values) string {
+	if reservation := query.Get("reservation"); reservation != "" {
+		return reservation
+	}
+	return query.Get("reservation_id")
 }
 
 func invalidConnectionStringError(uri string) error {
